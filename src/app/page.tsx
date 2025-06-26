@@ -1,103 +1,82 @@
-import Image from "next/image";
+// app/page.tsx
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import QuizClient from './components/QuizClient'; // 作成したクライアントコンポーネントをインポート
+import type { QuizItem } from '@/app/lib/types'; 
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+// スクレイピングとクイズ生成ロジックをここに移動
+async function generateQuizData(): Promise<QuizItem[]> {
+  try {
+    const url = 'https://bsmg.wiki/mapping/glossary.html';
+    const baseUrl = 'https://bsmg.wiki';
+    const { data } = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+      }
+    });
+
+    const $ = cheerio.load(data);
+    const terms: { term: string; description: string; imageUrl?: string }[] = [];
+
+    $('main table tbody tr').each((_, element) => {
+      const term = $(element).find('td:first-child strong').text().trim();
+      const descriptionCell = $(element).find('td:nth-child(2)');
+      const description = descriptionCell.clone().find('details').remove().end().text().trim();
+      const imageElement = descriptionCell.find('details img');
+      let imageUrl: string | undefined = undefined;
+
+      if (imageElement.length > 0) {
+        const src = imageElement.attr('src');
+        if (src && src.startsWith('/')) {
+          imageUrl = `${baseUrl}${src}`;
+        }
+      }
+
+      if (term && description) {
+        terms.push({ term, description, imageUrl });
+      }
+    });
+
+    if (terms.length < 10) {
+      return []; // エラーの場合は空の配列を返す
+    }
+
+    const shuffledTerms = [...terms].sort(() => 0.5 - Math.random());
+    const selectedTerms = shuffledTerms.slice(0, 10);
+
+    const quizData: QuizItem[] = selectedTerms.map((correctTerm) => {
+      const wrongOptions = terms
+        .filter((t) => t.term !== correctTerm.term)
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3)
+        .map((t) => t.term);
+
+      const options = [correctTerm.term, ...wrongOptions].sort(
+        () => 0.5 - Math.random()
+      );
+
+      return {
+        question: correctTerm.description,
+        options: options,
+        answer: correctTerm.term,
+        imageUrl: correctTerm.imageUrl,
+      };
+    });
+    
+    return quizData;
+
+  } catch (error) {
+    console.error('Failed to generate quiz data during build:', error);
+    return []; // エラーの場合は空の配列を返す
+  }
+}
+
+// ページの本体。サーバーコンポーネントとしてビルド時に実行される
+export default async function Page() {
+  // ページがビルドされる時に一度だけクイズデータを生成
+  const quizData = await generateQuizData();
+
+  // 生成したデータをpropsとしてクライアントコンポーネントに渡す
+  return <QuizClient initialQuizData={quizData} />;
 }
