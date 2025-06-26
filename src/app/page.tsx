@@ -4,8 +4,8 @@
 
 import { useState, useEffect } from 'react';
 import ResultScreen from './components/ResultScreen';
-// 型定義は types.ts からインポートするのが望ましいですが、ここで定義しても動作します
-// もし app/lib/types.ts が残っている場合は import { QuizItem, AnswerRecord } from './lib/types'; を使ってください
+
+// 型定義（app/lib/types.tsからインポートするのが望ましいです）
 export interface QuizItem {
   question: string;
   options: string[];
@@ -47,8 +47,13 @@ export default function Home() {
       }
       const data: QuizItem[] = await response.json();
       setQuizData(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) { // ★★★ ここを修正しました ★★★
+      // 'err' の型を安全にチェックします
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('予期せぬエラーが発生しました。');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +89,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-8">
-        <h1 className="text-4xl font-bold mb-4">Beat Saber Mapping用語クイズ</h1>
+        <h1 className="text-4xl font-bold mb-4">Beat Saber 用語クイズ</h1>
         <p className="text-xl">クイズを読み込み中...</p>
       </main>
     );
@@ -128,7 +133,7 @@ export default function Home() {
       <div className="w-full max-w-3xl bg-gray-900 rounded-2xl shadow-2xl p-6 sm:p-10">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2 text-lg">
-            <h1 className="font-bold text-cyan-400">Beat Saber Mapping用語クイズ</h1>
+            <h1 className="font-bold text-cyan-400">Beat Saber 用語クイズ</h1>
             <span>問題 {currentQuestionIndex + 1} / {quizData.length}</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2.5">
