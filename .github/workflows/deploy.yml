@@ -1,0 +1,31 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # mainブランチにプッシュされたら実行
+  workflow_dispatch: # 手動でも実行できるようにする
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repository
+        uses: actions/checkout@v4
+      
+      - name: Install, build, and deploy
+        uses: withastro/action-gh-pages@v1.0.0
+        with:
+          # Node.jsのバージョン。プロジェクトに合わせて変更可能
+          node-version: 20
+          # ビルドコマンド（package.jsonのscriptsにあるもの）
+          build-command: "build"
+          # ビルド成果物が出力されるディレクトリ（Next.jsの静的エクスポートは'out'）
+          package-dir: "out"
