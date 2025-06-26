@@ -81,7 +81,7 @@ export default function QuizClient({ initialQuizData }: QuizClientProps) {
       <div className="w-full max-w-3xl bg-gray-900 rounded-2xl shadow-2xl p-6 sm:p-10">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2 text-lg">
-            <h1 className="font-bold text-cyan-400">Beat Saber 用語クイズ</h1>
+            <h1 className="font-bold text-cyan-400">Beat Saber Mapping用語クイズ</h1>
             <span>問題 {currentQuestionIndex + 1} / {quizData.length}</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2.5">
