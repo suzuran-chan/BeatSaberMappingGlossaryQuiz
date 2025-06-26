@@ -89,7 +89,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-8">
-        <h1 className="text-4xl font-bold mb-4">Beat Saber 用語クイズ</h1>
+        <h1 className="text-4xl font-bold mb-4">Beat Saber Mapping用語クイズ</h1>
         <p className="text-xl">クイズを読み込み中...</p>
       </main>
     );
@@ -133,7 +133,7 @@ export default function Home() {
       <div className="w-full max-w-3xl bg-gray-900 rounded-2xl shadow-2xl p-6 sm:p-10">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2 text-lg">
-            <h1 className="font-bold text-cyan-400">Beat Saber 用語クイズ</h1>
+            <h1 className="font-bold text-cyan-400">Beat Saber Mapping用語クイズ</h1>
             <span>問題 {currentQuestionIndex + 1} / {quizData.length}</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2.5">
