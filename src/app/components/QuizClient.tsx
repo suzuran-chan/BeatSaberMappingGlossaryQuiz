@@ -2,33 +2,70 @@
 
 'use client'; 
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ResultScreen from './ResultScreen';
 import type { QuizItem, AnswerRecord } from '@/app/lib/types';
 
 interface QuizClientProps {
-  initialQuizData: QuizItem[];
+  allTerms: QuizItem[];
 }
 
-export default function QuizClient({ initialQuizData }: QuizClientProps) {
-  const [quizData] = useState(initialQuizData);
-  
+export default function QuizClient({ allTerms }: QuizClientProps) {
+  const [quizData, setQuizData] = useState<QuizItem[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [isQuizFinished, setIsQuizFinished] = useState(false);
   const [answerHistory, setAnswerHistory] = useState<AnswerRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 新しいクイズを生成する関数
+  const generateNewQuiz = () => {
+    if (allTerms.length < 10) {
+      setQuizData([]);
+      return;
+    }
+    
+    const shuffledTerms = [...allTerms].sort(() => 0.5 - Math.random());
+    const selectedTerms = shuffledTerms.slice(0, 10);
+
+    const newQuizData = selectedTerms.map(correctTerm => {
+      // ★★★ ここからが修正点 ★★★
+      const wrongOptions = allTerms
+        .filter(t => t.answer !== correctTerm.answer) // .term を .answer に修正
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3)
+        .map(t => t.answer); // .term を .answer に修正
+      // ★★★ ここまでが修正点 ★★★
+
+      const options = [correctTerm.answer, ...wrongOptions].sort(() => 0.5 - Math.random());
+      
+      return { ...correctTerm, options };
+    });
+
+    setQuizData(newQuizData);
+  };
+
+  useEffect(() => {
+    generateNewQuiz();
+    setIsLoading(false);
+  }, [allTerms]);
 
   const startNewQuiz = () => {
-    window.location.reload();
+    setIsLoading(true);
+    generateNewQuiz();
+    setCurrentQuestionIndex(0);
+    setSelectedAnswer(null);
+    setIsCorrect(null);
+    setAnswerHistory([]);
+    setIsQuizFinished(false);
+    setIsLoading(false);
   };
 
   const handleAnswerSelect = (option: string) => {
     if (selectedAnswer !== null) return;
-
     const answer = quizData[currentQuestionIndex].answer;
     const correct = option === answer;
-
     setSelectedAnswer(option);
     setIsCorrect(correct);
   };
@@ -37,37 +74,35 @@ export default function QuizClient({ initialQuizData }: QuizClientProps) {
     const currentQuestion = quizData[currentQuestionIndex];
     setAnswerHistory(prev => [
       ...prev,
-      {
-        ...currentQuestion,
-        selectedAnswer: selectedAnswer!,
-        isCorrect: isCorrect!,
-      }
+      { ...currentQuestion, selectedAnswer: selectedAnswer!, isCorrect: isCorrect! }
     ]);
-    
     if (currentQuestionIndex < quizData.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setIsCorrect(null);
     } else {
       setIsQuizFinished(true);
     }
   };
+  
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-8">
+        <h1 className="text-4xl font-bold mb-4">Beat Saber 用語クイズ</h1>
+        <p className="text-xl">クイズを準備中...</p>
+      </main>
+    );
+  }
 
   if (isQuizFinished) {
     return <ResultScreen answerHistory={answerHistory} onRetry={startNewQuiz} />;
   }
-
+  
   if (!quizData || quizData.length === 0) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-8">
         <h1 className="text-4xl font-bold text-red-500 mb-4">エラー</h1>
-        <p className="text-xl">クイズデータの読み込みに失敗しました。</p>
-        <button
-            onClick={startNewQuiz}
-            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-          >
-            再読み込み
-        </button>
+        <p className="text-xl">クイズデータの生成に失敗しました。</p>
       </main>
     );
   }
@@ -79,7 +114,7 @@ export default function QuizClient({ initialQuizData }: QuizClientProps) {
       <div className="w-full max-w-3xl bg-gray-900 rounded-2xl shadow-2xl p-6 sm:p-10">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2 text-lg">
-            <h1 className="font-bold text-cyan-400">Beat Saber Mapping用語クイズ</h1>
+            <h1 className="font-bold text-cyan-400">Beat Saber 用語クイズ</h1>
             <span>問題 {currentQuestionIndex + 1} / {quizData.length}</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2.5">
@@ -104,7 +139,6 @@ export default function QuizClient({ initialQuizData }: QuizClientProps) {
             const isSelected = selectedAnswer === option;
             const answer = quizData[currentQuestionIndex].answer;
             let buttonClass = 'bg-gray-700 hover:bg-gray-600';
-
             if (selectedAnswer !== null) {
               if (option === answer) {
                 buttonClass = 'bg-green-600';
@@ -114,7 +148,6 @@ export default function QuizClient({ initialQuizData }: QuizClientProps) {
                 buttonClass = 'bg-gray-700 opacity-50';
               }
             }
-            
             return (
               <button
                 key={option}

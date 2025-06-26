@@ -2,11 +2,10 @@
 
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import QuizClient from './components/QuizClient'; // 作成したクライアントコンポーネントをインポート
-import type { QuizItem } from '@/app/lib/types'; 
+import QuizClient from './components/QuizClient';
+import type { QuizItem } from '@/app/lib/types';
 
-// スクレイピングとクイズ生成ロジックをここに移動
-async function generateQuizData(): Promise<QuizItem[]> {
+async function fetchAllTerms(): Promise<QuizItem[]> {
   try {
     const url = 'https://bsmg.wiki/mapping/glossary.html';
     const baseUrl = 'https://bsmg.wiki';
@@ -17,7 +16,7 @@ async function generateQuizData(): Promise<QuizItem[]> {
     });
 
     const $ = cheerio.load(data);
-    const terms: { term: string; description: string; imageUrl?: string }[] = [];
+    const allTerms: QuizItem[] = [];
 
     $('main table tbody tr').each((_, element) => {
       const term = $(element).find('td:first-child strong').text().trim();
@@ -34,49 +33,27 @@ async function generateQuizData(): Promise<QuizItem[]> {
       }
 
       if (term && description) {
-        terms.push({ term, description, imageUrl });
+        // QuizItemの型に合わせて、正しいプロパティ名でオブジェクトを作成します。
+        // description → question, term → answer
+        allTerms.push({
+          question: description, 
+          answer: term, 
+          imageUrl: imageUrl, 
+          options: [] // optionsはクライアント側で生成するため空配列
+        });
       }
     });
-
-    if (terms.length < 10) {
-      return []; // エラーの場合は空の配列を返す
-    }
-
-    const shuffledTerms = [...terms].sort(() => 0.5 - Math.random());
-    const selectedTerms = shuffledTerms.slice(0, 10);
-
-    const quizData: QuizItem[] = selectedTerms.map((correctTerm) => {
-      const wrongOptions = terms
-        .filter((t) => t.term !== correctTerm.term)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3)
-        .map((t) => t.term);
-
-      const options = [correctTerm.term, ...wrongOptions].sort(
-        () => 0.5 - Math.random()
-      );
-
-      return {
-        question: correctTerm.description,
-        options: options,
-        answer: correctTerm.term,
-        imageUrl: correctTerm.imageUrl,
-      };
-    });
     
-    return quizData;
+    return allTerms;
 
   } catch (error) {
-    console.error('Failed to generate quiz data during build:', error);
-    return []; // エラーの場合は空の配列を返す
+    console.error('Failed to fetch terms during build:', error);
+    return [];
   }
 }
 
-// ページの本体。サーバーコンポーネントとしてビルド時に実行される
+// ページの本体
 export default async function Page() {
-  // ページがビルドされる時に一度だけクイズデータを生成
-  const quizData = await generateQuizData();
-
-  // 生成したデータをpropsとしてクライアントコンポーネントに渡す
-  return <QuizClient initialQuizData={quizData} />;
+  const allTerms = await fetchAllTerms();
+  return <QuizClient allTerms={allTerms} />;
 }
