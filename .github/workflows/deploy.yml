@@ -3,46 +3,38 @@
 name: Deploy to GitHub Pages
 
 on:
-  # mainブランチにプッシュされた時に実行
   push:
     branches:
       - main
-  # GitHubのActionsタブから手動でも実行できるようにする
   workflow_dispatch:
 
-# ワークフローに必要な権限を設定
+# ワークフローに必要な権限を設定します。
+# contentsをreadからwriteに変更して、gh-pagesブランチへの書き込みを許可します。
 permissions:
-  contents: read
+  contents: write 
   pages: write
   id-token: write
 
 jobs:
-  # build-and-deploy という名前のジョブを定義
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      # 1. リポジトリのコードをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Node.js環境をセットアップ
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # プロジェクトで使用しているNode.jsのバージョン
+          node-version: 20
 
-      # 3. 依存関係をインストール
       - name: Install dependencies
         run: npm install
 
-      # 4. Next.jsアプリをビルド（静的ファイルを出力）
       - name: Build static site
         run: npm run build
 
-      # 5. GitHub Pagesにデプロイ
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4 
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          # デプロイするフォルダを指定 (Next.jsの静的エクスポートは 'out' フォルダ)
           publish_dir: ./out
