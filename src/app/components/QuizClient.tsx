@@ -2,7 +2,6 @@
 
 'use client'; 
 
-// ★変更点1: useEffectをインポートから削除
 import { useState } from 'react';
 import ResultScreen from './ResultScreen';
 import type { QuizItem, AnswerRecord } from '@/app/lib/types';
@@ -12,7 +11,6 @@ interface QuizClientProps {
 }
 
 export default function QuizClient({ initialQuizData }: QuizClientProps) {
-  // ★変更点2: setQuizDataを削除
   const [quizData] = useState(initialQuizData);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
